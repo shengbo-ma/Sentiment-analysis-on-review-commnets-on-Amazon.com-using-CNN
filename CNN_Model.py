@@ -1,12 +1,7 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 import pandas as pd
 import numpy as np
-from keras.layers import Embedding, Dense, Conv1D, MaxPooling1D, Dropout, Activation, Input, Flatten, Concatenate
+from keras.layers import Embedding, Dense, Conv1D, MaxPooling1D, \
+Dropout, Activation, Input, Flatten, Concatenate
 from keras.models import Model
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -18,7 +13,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 import gensim
 
-def cnn_model(FILTER_SIZES,               # filter sizes as a list
+def cnn_model(FILTER_SIZES, \
+              # filter sizes as a list
               MAX_NB_WORDS, \
               # total number of words
               MAX_DOC_LEN, \
@@ -38,21 +34,29 @@ def cnn_model(FILTER_SIZES,               # filter sizes as a list
               LAM=0.0):            
               # regularization coefficient
     
-    main_input = Input(shape=(MAX_DOC_LEN,),                        dtype='int32', name='main_input')
+    main_input = Input(shape=(MAX_DOC_LEN,), \
+                       dtype='int32', name='main_input')
     
     if PRETRAINED_WORD_VECTOR is not None:
-        embed_1 = Embedding(input_dim=MAX_NB_WORDS+1,                         output_dim=EMBEDDING_DIM,                         input_length=MAX_DOC_LEN,                         # use pretrained word vectors
+        embed_1 = Embedding(input_dim=MAX_NB_WORDS+1, \
+                        output_dim=EMBEDDING_DIM, \
+                        input_length=MAX_DOC_LEN, \
+                        # use pretrained word vectors
                         weights=[PRETRAINED_WORD_VECTOR],\
                         # word vectors can be further tuned
                         # set it to False if use static word vectors
                         trainable=True,\
                         name='embedding')(main_input)
     else:
-        embed_1 = Embedding(input_dim=MAX_NB_WORDS+1,                         output_dim=EMBEDDING_DIM,                         input_length=MAX_DOC_LEN,                         name='embedding')(main_input)
+        embed_1 = Embedding(input_dim=MAX_NB_WORDS+1, \
+                        output_dim=EMBEDDING_DIM, \
+                        input_length=MAX_DOC_LEN, \
+                        name='embedding')(main_input)
     # add convolution-pooling-flat block
     conv_blocks = []
     for f in FILTER_SIZES:
-        conv = Conv1D(filters=NUM_FILTERS, kernel_size=f,                       activation='relu', name='conv_'+str(f))(embed_1)
+        conv = Conv1D(filters=NUM_FILTERS, kernel_size=f, \
+                      activation='relu', name='conv_'+str(f))(embed_1)
         conv = MaxPooling1D(MAX_DOC_LEN-f+1, name='max_'+str(f))(conv)
         conv = Flatten(name='flat_'+str(f))(conv)
         conv_blocks.append(conv)
@@ -64,11 +68,13 @@ def cnn_model(FILTER_SIZES,               # filter sizes as a list
         
     drop=Dropout(rate=DROP_OUT, name='dropout')(z)
 
-    dense = Dense(NUM_DENSE_UNITS, activation='relu',                    kernel_regularizer=l2(LAM),name='dense')(drop)
+    dense = Dense(NUM_DENSE_UNITS, activation='relu',\
+                    kernel_regularizer=l2(LAM),name='dense')(drop)
     preds = Dense(NUM_OUTPUT_UNITS, activation='sigmoid', name='output')(dense)
     model = Model(inputs=main_input, outputs=preds)
     
-    model.compile(loss="binary_crossentropy",               optimizer="adam", metrics=["accuracy"]) 
+    model.compile(loss="binary_crossentropy", \
+              optimizer="adam", metrics=["accuracy"]) 
     
     return model
 
@@ -98,15 +104,20 @@ def sentiment_cnn(file_path):
     
     BEST_MODEL_FILEPATH="best_model"
 
-    X_train, X_test, Y_train, Y_test = train_test_split(                    padded_sequences, Y, test_size=0.2, random_state=0)
+    X_train, X_test, Y_train, Y_test = train_test_split(\
+                    padded_sequences, Y, test_size=0.2, random_state=0)
 
     model=cnn_model(FILTER_SIZES, MAX_NB_WORDS, MAX_DOC_LEN, EMBEDDING_DIM=EMBEDDING_DIM, NUM_FILTERS=num_filters,
                     NUM_OUTPUT_UNITS=output_units_num, NUM_DENSE_UNITS=dense_units_num)
 
     earlyStopping=EarlyStopping(monitor='val_loss', patience=0, verbose=2, mode='min')
-    checkpoint = ModelCheckpoint(BEST_MODEL_FILEPATH, monitor='val_loss',                                  verbose=2, save_best_only=True, mode='min')
+    checkpoint = ModelCheckpoint(BEST_MODEL_FILEPATH, monitor='val_loss', \
+                                 verbose=2, save_best_only=True, mode='min')
 
-    training=model.fit(X_train, Y_train,               batch_size=BTACH_SIZE, epochs=NUM_EPOCHES,               callbacks=[earlyStopping, checkpoint],              validation_data=[X_test, Y_test], verbose=2)
+    training=model.fit(X_train, Y_train, \
+              batch_size=BTACH_SIZE, epochs=NUM_EPOCHES, \
+              callbacks=[earlyStopping, checkpoint],\
+              validation_data=[X_test, Y_test], verbose=2)
     
     # load the best model and predict
     model.load_weights("best_model")
@@ -160,15 +171,17 @@ def improved_sentiment_cnn(file_path):
     
     BEST_MODEL_FILEPATH="best_model"
 
-    X_train, X_test, Y_train, Y_test = train_test_split(                    padded_sequences, Y, test_size=0.2, random_state=0)
+    X_train, X_test, Y_train, Y_test = train_test_split(padded_sequences, Y, test_size=0.2, random_state=0)
 
     model=cnn_model(FILTER_SIZES, MAX_NB_WORDS, MAX_DOC_LEN, EMBEDDING_DIM=EMBEDDING_DIM, NUM_FILTERS=num_filters,
                     NUM_OUTPUT_UNITS=output_units_num, NUM_DENSE_UNITS=dense_units_num)
 
     earlyStopping=EarlyStopping(monitor='val_loss', patience=0, verbose=2, mode='min')
-    checkpoint = ModelCheckpoint(BEST_MODEL_FILEPATH, monitor='val_loss',                                  verbose=2, save_best_only=True, mode='min')
+    checkpoint = ModelCheckpoint(BEST_MODEL_FILEPATH, monitor='val_loss', 
+                                 verbose=2, save_best_only=True, mode='min')
 
-    training=model.fit(X_train, Y_train,               batch_size=BTACH_SIZE, epochs=NUM_EPOCHES,               callbacks=[earlyStopping, checkpoint],              validation_data=[X_test, Y_test], verbose=2)
+    training=model.fit(X_train, Y_train, batch_size=BTACH_SIZE, epochs=NUM_EPOCHES, 
+                       callbacks=[earlyStopping, checkpoint],validation_data=[X_test, Y_test], verbose=2)
     
     # load the best model and predict
     model.load_weights("best_model")
@@ -189,4 +202,3 @@ if __name__ == "__main__":
     file_path = 'amazon_review_500.csv'
     sentiment_cnn(file_path)
     improved_sentiment_cnn(file_path)
-
